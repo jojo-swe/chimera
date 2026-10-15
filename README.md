@@ -76,6 +76,71 @@ The demo creates three workers:
 
 Every transition is printed as an auditable event.
 
+## Durable runtime
+
+`Kernel()` still uses the in-memory store by default. Use `SQLiteEventStore` to
+persist the same typed `Event` envelopes, with stable zero-based offsets,
+correlation queries, and atomic `append_many` batches. SQLite uses WAL and FULL
+synchronous commits; duplicate event IDs, updates, and deletes are rejected.
+Payloads must contain JSON-compatible mappings with string keys, lists, and finite
+scalar values. UUIDs and timestamps in the envelope are preserved exactly.
+
+The demo builder can also configure a fresh or recovered SQLite-backed kernel:
+
+```python
+from chimera.demo import build_demo_kernel
+from chimera.events import Event, SQLiteEventStore
+
+with SQLiteEventStore("chimera.db") as store:
+    kernel = build_demo_kernel(event_store=store)
+    # Re-running this example resumes existing work rather than creating it again.
+    if not any(event.event_type == "task.created" for event in store):
+        kernel.publish(Event(
+            event_type="task.created", actor_id="human",
+            payload={"goal": "Explain Chimera"},
+        ))
+    kernel.run()
+```
+
+### Replay and recovery guarantees
+
+- `Kernel(event_store=store)` and `kernel.replay()` reconstruct process identity,
+  lifecycle, parent relationships, budget limits/usage, and pending deliveries
+  **without running workers or tools and without appending events**.
+- For custom workers, use `attach_agent(process_id=..., agent=...)` to bind code to
+  recovered processes. Agent type and subscriptions must match the registration.
+  Restore tool implementations and explicitly grant capabilities before `run()`.
+  A new kernel is always **deny-by-default**: grants are not inferred from history.
+- Each event's recipient list is journaled in registration order. Each recipient's
+  completion receipt, final process snapshot, and all emitted events commit in
+  **one transaction**. Completed recipients are never redelivered; a partial fanout
+  resumes only its unfinished recipients, and dispatched events with no recipients
+  are not delivered retroactively to newly registered workers.
+- Interrupted handlers are **at-least-once**: their uncommitted output is absent,
+  and they are retried from their prior READY/WAITING state. External tool effects
+  cannot be rolled back by SQLite. Make side-effecting tools idempotent using the
+  input event ID and process ID; this is **not an exactly-once tool guarantee**.
+- Step, tool-call, and token charges are committed before execution proceeds.
+  Charges from interrupted attempts remain consumed; retries consume another step.
+  Budget exhaustion and worker failures are durable terminal states.
+- Call `Process.transition()` for lifecycle changes outside handlers; those changes
+  are journaled too. Supply custom limits via `register_agent(..., budget=Budget(...))`.
+  Direct assignment to mutable process/budget fields is not a durable control API.
+- After an interrupted `run()` (including a delivery limit or storage error), call
+  `replay()` or construct a new kernel before continuing. Fetch process references
+  again after replay, since the projection rebuilds them. Do not serialize private
+  mutable worker state: use stateless handlers or derive that state from events.
+
+The `runtime.*`, `process.registered`, and `process.failed` event types are reserved
+for kernel control records. Versioned journal records use separate correlation IDs
+and link to domain events through `input_event_id`, keeping domain correlation
+queries unchanged. Runtime records are not dispatched to workers. Recovery supports
+histories written by this durable runtime, not legacy logs without delivery records.
+
+This is a **single-owner, synchronous runtime**: SQLite supports concurrent store
+connections, but only one kernel may schedule a given history at a time. Worker
+leases, asynchronous execution, and human approval gates remain roadmap items.
+
 ## Example policy
 
 ```python
@@ -114,8 +179,8 @@ src/chimera/
 - [x] Core tests
 
 ### 0.2 — Durable runtime
-- [ ] SQLite event store
-- [ ] Crash recovery and replay
+- [x] SQLite event store
+- [x] Crash recovery and replay
 - [ ] Async worker execution
 - [ ] Human approval gates
 - [ ] Secret references
