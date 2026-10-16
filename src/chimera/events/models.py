@@ -1,10 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from copy import deepcopy
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any
 from uuid import UUID, uuid4
+
+
+def _copy_value(value: Any) -> Any:
+    # Mapping proxies cannot be deep-copied directly. Normalize nested mappings,
+    # retaining the in-memory backend's support for arbitrary payload values.
+    if isinstance(value, Mapping):
+        return {key: _copy_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_copy_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_copy_value(item) for item in value)
+    return deepcopy(value)
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,7 +40,13 @@ class Event:
             raise ValueError("actor_id cannot be empty")
         object.__setattr__(self, "payload", MappingProxyType(dict(self.payload)))
 
-    def child(self, *, event_type: str, actor_id: str, payload: Mapping[str, Any] | None = None) -> Event:
+    def snapshot(self) -> Event:
+        """Copy nested payload values without changing identity or trace metadata."""
+        return replace(self, payload=_copy_value(self.payload))
+
+    def child(
+        self, *, event_type: str, actor_id: str, payload: Mapping[str, Any] | None = None,
+    ) -> Event:
         return Event(
             event_type=event_type,
             actor_id=actor_id,

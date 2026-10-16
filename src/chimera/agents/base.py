@@ -17,8 +17,13 @@ class AgentContext:
 
 
 class Agent(Protocol):
-    agent_type: str
-    subscriptions: frozenset[str]
+    @property
+    def agent_type(self) -> str:
+        ...
+
+    @property
+    def subscriptions(self) -> frozenset[str]:
+        ...
 
     def handle(self, event: Event, context: AgentContext) -> tuple[Event, ...]:
         ...

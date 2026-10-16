@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 from chimera.demo import run_demo
 
@@ -21,7 +21,10 @@ def _demo() -> int:
         print(json.dumps(record, sort_keys=True))
     print("\nPROCESS TABLE")
     for process in kernel.process_table():
-        print(f"{process.process_id:<12} state={process.state:<10} steps={process.budget.steps_used:<3} tool_calls={process.budget.tool_calls_used}")
+        print(
+            f"{process.process_id:<12} state={process.state:<10} "
+            f"steps={process.budget.steps_used:<3} tool_calls={process.budget.tool_calls_used}"
+        )
     return 0
 
 
