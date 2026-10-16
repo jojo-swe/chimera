@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from chimera.runtime.process import Process
 from chimera.security import Capability, Policy
@@ -29,7 +30,9 @@ class ToolRegistry:
             raise ValueError(f"tool already registered: {tool.name}")
         self._tools[tool.name] = tool
 
-    def execute(self, *, tool_name: str, process: Process, arguments: dict[str, Any]) -> dict[str, Any]:
+    def execute(
+        self, *, tool_name: str, process: Process, arguments: dict[str, Any],
+    ) -> dict[str, Any]:
         try:
             tool = self._tools[tool_name]
         except KeyError as exc:

@@ -42,8 +42,13 @@ def test_tool_execution_requires_capability_and_charges_budget() -> None:
     registry = ToolRegistry(policy)
     process = Process(process_id="researcher", agent_type="researcher")
     registry.register(Tool(name="search", handler=lambda args: {"value": args["value"]}))
-    policy.grant(subject="researcher", capability=Capability(resource="tool:search", action="execute"))
-    assert registry.execute(tool_name="search", process=process, arguments={"value": 7}) == {"value": 7}
+    policy.grant(
+        subject="researcher",
+        capability=Capability(resource="tool:search", action="execute"),
+    )
+    assert registry.execute(
+        tool_name="search", process=process, arguments={"value": 7},
+    ) == {"value": 7}
     assert process.budget.tool_calls_used == 1
 
 
