@@ -1,0 +1,8 @@
+# Official gitleaks hook (v8.30.1 entry: gitleaks git --pre-commit --redact --staged).
+# --config is appended so the hook reads this repo's privacy-guard rules.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+        args: ["--config=.gitleaks.toml"]
