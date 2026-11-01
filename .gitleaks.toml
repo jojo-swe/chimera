@@ -1,0 +1,126 @@
+# Privacy guard. Extends the built-in gitleaks rules with patterns for
+# personal contact data and private network names. Do not put a real
+# mailbox, address, hostname, or username in this file.
+title = "privacy-guard"
+minVersion = "v8.25.0"
+
+[extend]
+useDefault = true
+
+# Consumer mailbox. The character before the address is not consumed, so a
+# placeholder such as <user>@gmail.com is not a finding. GitHub noreply,
+# noreply@, and example.com / example.org are allowlisted below.
+[[rules]]
+id = "personal-email"
+description = "Personal email on gmail.com, outlook.com, hotmail.com, icloud.com, proton.me, or protonmail.com"
+regex = '''(?i)(?:^|[^A-Za-z0-9._%+\-<])([A-Za-z0-9._%+\-]+@(?:gmail\.com|outlook\.com|hotmail\.com|icloud\.com|proton\.me|protonmail\.com)\b)'''
+secretGroup = 1
+tags = ["privacy", "email"]
+keywords = [
+  "@gmail.com",
+  "@outlook.com",
+  "@hotmail.com",
+  "@icloud.com",
+  "@proton.me",
+  "@protonmail.com",
+]
+
+  [[rules.allowlists]]
+  description = "GitHub noreply, noreply mailboxes, and example.com / example.org"
+  regexTarget = "secret"
+  regexes = [
+    '''(?i)^[^@\s]+@users\.noreply\.github\.com$''',
+    '''(?i)^noreply@''',
+    '''(?i)^[^@\s]+@example\.(?:com|org)$''',
+  ]
+
+# 192.168.0.0/16, 10.0.0.0/8, and 100.64.0.0/10 (CGNAT, 100.64-100.127).
+# A network base that ends in .0 and has a CIDR length is allowlisted.
+# 127.0.0.1, 0.0.0.0, and RFC 5737 (192.0.2.0/24, 198.51.100.0/24,
+# 203.0.113.0/24) are outside these ranges. Letter placeholders such as
+# 100.64.0.x are captured only so the allowlist can accept them.
+[[rules]]
+id = "internal-ip"
+description = "Private or CGNAT IPv4 address (10/8, 192.168/16, 100.64/10)"
+regex = '''(?:^|[^\d.])((?:192\.168\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)|10\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)|100\.(?:6[4-9]|[7-9]\d|1[0-1]\d|12[0-7])\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d))\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:/\d{1,2})?|192\.168\.[xX]\.[yY]|10\.[xX]\.[yY]\.[zZ]|100\.64\.0\.[xX])(?:[^\d./]|$)'''
+secretGroup = 1
+tags = ["privacy", "ip"]
+keywords = ["192.168.", "10.", "100."]
+
+  [[rules.allowlists]]
+  description = "Network address ending in .0 written with a CIDR length"
+  regexTarget = "secret"
+  regexes = [
+    '''^(?:192\.168\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)|10\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)|100\.(?:6[4-9]|[7-9]\d|1[0-1]\d|12[0-7])\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d))\.0/\d{1,2}$''',
+  ]
+
+  [[rules.allowlists]]
+  description = "RFC 5737 documentation ranges, loopback, unspecified address, and letter placeholders"
+  regexTarget = "secret"
+  regexes = [
+    '''^(?:192\.0\.2|198\.51\.100|203\.0\.113)\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:/\d{1,2})?$''',
+    '''^127\.0\.0\.1$''',
+    '''^0\.0\.0\.0(?:/\d{1,2})?$''',
+    '''(?i)^192\.168\.[xy]\.[xy]$''',
+    '''(?i)^10\.[xyz]\.[xyz]\.[xyz]$''',
+    '''(?i)^100\.64\.0\.x$''',
+  ]
+
+# MagicDNS. example.ts.net (and names under it), <placeholder>.ts.net, and
+# any name containing the word tailnet are placeholders, not a real tailnet.
+[[rules]]
+id = "tailscale-hostname"
+description = "Tailscale MagicDNS hostname under ts.net"
+regex = '''(?i)(?:^|[^A-Za-z0-9@.<>-])((?:<[^>\s/]+>\.)+ts\.net|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+ts\.net)\b'''
+secretGroup = 1
+tags = ["privacy", "tailscale"]
+keywords = ["ts.net"]
+
+  [[rules.allowlists]]
+  description = "example.ts.net, angle-bracket placeholders, and tailnet placeholders"
+  regexTarget = "secret"
+  regexes = [
+    '''(?i)^(?:[a-z0-9-]+\.)*example\.ts\.net$''',
+    '''(?i)^(?:<[^>\s/]+>\.)+ts\.net$''',
+    '''(?i)tailnet''',
+  ]
+
+# Username is secret group 2 so the default gitleaks path allowlist, which
+# matches a full /home/... or /Users/... path, does not swallow the finding.
+# A trailing slash is required. ~ and a bare %USERPROFILE% are not usernames.
+[[rules]]
+id = "home-directory-username"
+description = "Home directory path that contains a username"
+regex = '''(?i)(?:^|[^\w<])((?:/home/|/users/|[a-z]:(?:\\\\|/|\\)users(?:\\\\|/|\\))([^/\\:\s"'`]+)(?:\\\\|/|\\))'''
+secretGroup = 2
+tags = ["privacy", "path"]
+keywords = [
+  "/home/",
+  "/Users/",
+  "/users/",
+  "\\Users\\",
+  "\\users\\",
+]
+
+  [[rules.allowlists]]
+  description = "Generic, CI, root, and placeholder account names"
+  regexTarget = "secret"
+  regexes = [
+    '''(?i)^(?:<[^>]+>|user|runner|runneradmin|ubuntu|root|\$USER|%USERPROFILE%)$''',
+  ]
+
+# Lockfiles and vendor trees. The default config already skips some of these;
+# the extra paths cover ecosystems it does not. .git is checkout metadata:
+# a directory scan must not treat a local or CI credential as file content.
+[[allowlists]]
+description = "Lockfiles and vendored dependency trees"
+paths = [
+  '''(?i)(?:^|/)(?:package-lock\.json|yarn\.lock|pnpm-lock\.yaml|npm-shrinkwrap\.json|bun\.lockb?|composer\.lock|gemfile\.lock|cargo\.lock|packages\.lock\.json|mix\.lock|pubspec\.lock|poetry\.lock|pipfile\.lock|go\.sum|deno\.lock|gradle\.lockfile)$''',
+  '''(?i)(?:^|/)(?:vendor|node_modules|third_party|third-party|bower_components)/''',
+]
+
+[[allowlists]]
+description = "Version-control metadata, not repository content"
+paths = [
+  '''(?:^|/)\.git(?:/|$)''',
+]
