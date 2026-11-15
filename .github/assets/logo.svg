@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#08090c"/>
+  <defs>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="28" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="256" cy="256" r="180" fill="#a78bfa" fill-opacity="0.18" filter="url(#glow)"/>
+  <rect x="56.32" y="56.32" width="399.36" height="399.36" rx="71.88" fill="#0e1016"/>
+  <rect x="63.51" y="63.51" width="384.98" height="384.98" rx="64.70" fill="none" stroke="#a78bfa" stroke-opacity="0.35" stroke-width="3"/>
+    <circle cx="219.50" cy="234.10" r="58.41" fill="none" stroke="#a78bfa" stroke-width="13.38" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="292.50" cy="234.10" r="58.41" fill="none" stroke="#a78bfa" stroke-width="13.38" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="256.00" cy="297.37" r="58.41" fill="none" stroke="#a78bfa" stroke-width="13.38" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="256.00" cy="253.57" r="9.73" fill="#a78bfa" stroke="none"/>
+</svg>

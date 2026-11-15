@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/assets/logo.svg" alt="chimera logo" width="128"></p>
+
 # Chimera
 
 **A secure runtime for autonomous AI workers.**
